@@ -30,6 +30,45 @@ app.get('/data', (req,res)=> {
 
 })
 
+app.post("/cb", (req, res) => {
+  debugger;
+  const { loginuser,userid, ischecked } = req.body;
+  console.log(loginuser,userid,ischecked)
+/*
+  return db("users")
+    .where({ email: email })
+    .update({ ischecked: ischecked }, ["email"])
+    .then(arr => arr.length && res.status(200).json({ email: arr[0] }));
+    */
+    if (ischecked) {
+    	db.transaction(trx =>{
+			trx.insert({
+				id:loginuser,
+				connections:userid
+			})
+			.into('networkusers')
+			.returning('id','connections')
+			
+					.then (()=> {console.log('committing'); trx.commit();})
+					.catch((error)=>{console.log('error',error);trx.rollback()})
+				})
+		
+	.catch(err => res.status(400).json(err))
+	
+
+    }else {
+    	db.transaction(trx =>{
+			knex('networkusers')
+			  .whereIn(['id', loginuser], ['connections', userid])
+			  .del()
+			
+					.then (()=> {console.log('committing'); trx.commit();})
+					.catch((error)=>{console.log('error',error);trx.rollback()})
+				})
+		
+	.catch(err => res.status(400).json(err))
+    }
+});
 
 
 app.post('/signin',(req,res) => {
